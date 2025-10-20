@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:okara/features/analytics/analytics_screen.dart';
+import 'package:okara/features/chat/widgets/chat_drawer.dart';
 import 'package:okara/features/chat/widgets/chat_input.dart';
 import 'package:okara/features/chat/widgets/comparison_bubble.dart';
 import 'package:okara/features/chat/widgets/message_bubble.dart';
@@ -8,19 +9,73 @@ import 'package:okara/features/chat/widgets/provider_selector.dart';
 import 'package:okara/models/comparison_message.dart';
 import 'package:okara/models/message.dart';
 import 'package:okara/providers/chat_provider.dart';
+import 'package:okara/providers/chat_session_provider.dart';
+import 'package:okara/services/database_service.dart';
 
-class ChatScreen extends ConsumerWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends ConsumerState<ChatScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with a default session if none exists
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeSession();
+    });
+  }
+
+  Future<void> _initializeSession() async {
+    final currentSession = ref.read(currentSessionProvider);
+
+    // Skip if already has a session
+    if (currentSession != null) return;
+
+    final db = DatabaseService.instance;
+    final sessionNotifier = ref.read(chatSessionsProvider.notifier);
+    final currentSessionNotifier = ref.read(currentSessionProvider.notifier);
+
+    // Ensure sessions are loaded from database
+    await sessionNotifier.refreshSessions();
+    final sessions = ref.read(chatSessionsProvider);
+
+    if (sessions.isEmpty) {
+      // No sessions at all, create the first one
+      final newSession = await sessionNotifier.createNewSession();
+      currentSessionNotifier.setSession(newSession);
+      return;
+    }
+
+    // Check if there's an empty chat (no messages AND no comparisons) we can reuse
+    for (final session in sessions) {
+      final messages = await db.getMessages(session.id);
+      final comparisons = await db.getComparisonMessages(session.id);
+      if (messages.isEmpty && comparisons.isEmpty) {
+        // Found an empty chat, use it
+        currentSessionNotifier.setSession(session);
+        return;
+      }
+    }
+
+    // No empty chat found, use the most recent session
+    currentSessionNotifier.setSession(sessions.first);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final messages = ref.watch(messagesProvider);
     final comparisons = ref.watch(comparisonMessagesProvider);
+    final currentSession = ref.watch(currentSessionProvider);
     final theme = Theme.of(context);
     final hasContent = messages.isNotEmpty || comparisons.isNotEmpty;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      drawer: const ChatDrawer(),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: theme.colorScheme.surface,
@@ -39,10 +94,14 @@ class ChatScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              'Okara',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+            Expanded(
+              child: Text(
+                currentSession?.title ?? 'Okara',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -60,15 +119,6 @@ class ChatScreen extends ConsumerWidget {
             },
             tooltip: 'View analytics',
           ),
-          if (hasContent)
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: () {
-                ref.read(messagesProvider.notifier).clear();
-                ref.read(comparisonMessagesProvider.notifier).clear();
-              },
-              tooltip: 'Clear chat',
-            ),
         ],
       ),
       body: Column(

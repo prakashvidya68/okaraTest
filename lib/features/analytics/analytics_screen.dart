@@ -3,11 +3,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:okara/models/ai_provider.dart';
 import 'package:okara/providers/analytics_provider.dart';
 
-class AnalyticsScreen extends ConsumerWidget {
+class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
+
+class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Reload analytics from database when screen is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsProvider.notifier).loadFromDatabase();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final analytics = ref.watch(analyticsProvider);
     final theme = Theme.of(context);
 

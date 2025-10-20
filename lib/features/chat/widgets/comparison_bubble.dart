@@ -204,10 +204,47 @@ class _ComparisonBubbleState extends State<ComparisonBubble>
                           height: 1.5,
                         ),
                       ),
+                      if (response.responseTime != null &&
+                          !response.isStreaming)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: _buildResponseTime(
+                            response.responseTime!,
+                            theme,
+                          ),
+                        ),
                     ],
                   ),
                 );
               }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponseTime(Duration responseTime, ThemeData theme) {
+    final seconds = responseTime.inMilliseconds / 1000;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            size: 12,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${seconds.toStringAsFixed(2)}s',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],

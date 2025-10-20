@@ -73,6 +73,15 @@ class MessageBubble extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 8),
                           child: _buildUsageInfo(theme),
                         ),
+                      if (!isUser &&
+                          message.responseTime != null &&
+                          !message.isStreaming)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: message.usage != null ? 4 : 8,
+                          ),
+                          child: _buildResponseTime(theme),
+                        ),
                     ],
                   ),
                 ),
@@ -138,6 +147,35 @@ class MessageBubble extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             '${usage.totalTokens} tokens • \$${usage.estimatedCost.toStringAsFixed(4)}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponseTime(ThemeData theme) {
+    final responseTime = message.responseTime!;
+    final seconds = responseTime.inMilliseconds / 1000;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            size: 12,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${seconds.toStringAsFixed(2)}s',
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
