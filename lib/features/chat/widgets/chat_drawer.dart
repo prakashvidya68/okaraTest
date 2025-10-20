@@ -36,17 +36,13 @@ class ChatDrawer extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context, ThemeData theme) {
-    return DrawerHeader(
-      decoration: BoxDecoration(color: theme.colorScheme.primaryContainer),
+    return Padding(
+      padding: const EdgeInsets.only(top: 60.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Icon(
-            Icons.chat_bubble_outline_rounded,
-            size: 48,
-            color: theme.colorScheme.primary,
-          ),
+          Image.asset('assets/images/okara.png', width: 48, height: 48),
           const SizedBox(height: 8),
           Text(
             'Okara',
